@@ -303,23 +303,23 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
                 <div className="w-12 font-bold text-black text-lg">分數</div>
                 {isFinalExam && <div className="w-12 font-bold text-black text-base">進退步</div>}
                 <div className="flex-1 flex justify-around items-center h-full text-black">
-                    <div className="w-12 text-center text-sm font-bold h-full flex items-center justify-center border-l border-gray-100 bg-gray-50/50 text-black">班平均</div>
+                    <div className="w-12 text-center text-sm font-bold h-full flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-black">班平均</div>
                     {/* 級距標題 */}
                     {showGradeDistribution ? (
                          <>
-                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">100</div>
-                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">90<br/>|<br/>99</div>
-                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">80<br/>|<br/>89</div>
-                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">70<br/>|<br/>79</div>
-                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">60<br/>|<br/>69</div>
-                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">&lt;60</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">100</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">90<br/>|<br/>99</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">80<br/>|<br/>89</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">70<br/>|<br/>79</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">60<br/>|<br/>69</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">&lt;60</div>
                          </>
                     ) : null}
                 </div>
             </div>
 
             {/* 箱型圖區 (38%) */}
-            <div className="w-[38%] flex flex-col justify-end relative h-[50px] shrink-0 text-black border-l border-black/5 px-2 pt-1">
+            <div className="w-[38%] flex flex-col justify-end relative h-[50px] shrink-0 text-black border-l border-[#e5e7eb] px-2 pt-1">
                 <div className="absolute top-0 left-4 font-bold text-black whitespace-nowrap">
                     <span className="text-lg">班級落點分析</span>
                     <span className="text-base font-normal ml-2">簡化版箱型圖</span>
@@ -330,10 +330,10 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
             </div>
 
             {/* 統計資料區 (15%) */}
-            <div className="w-[15%] flex items-center justify-around text-[10px] font-bold border-l border-gray-100 bg-gray-50/30">
+            <div className="w-[15%] flex items-center justify-around text-[10px] font-bold border-l border-[#e5e7eb] bg-[#f9fafb]">
                 <div className="flex-1 text-center h-full flex items-center justify-center">Q1</div>
-                <div className="flex-1 text-center border-l border-gray-100 h-full flex items-center justify-center">中位數</div>
-                <div className="flex-1 text-center border-l border-gray-100 h-full flex items-center justify-center">Q3</div>
+                <div className="flex-1 text-center border-l border-[#e5e7eb] h-full flex items-center justify-center">中位數</div>
+                <div className="flex-1 text-center border-l border-[#e5e7eb] h-full flex items-center justify-center">Q3</div>
             </div>
         </div>
 
@@ -350,8 +350,8 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
                 const score = isAvgRow ? studentAvg : (data[subject] ?? '');
                 const stat = stats[subject];
                 const chartScore = isAvgRow ? Number(studentAvg) : Number(data[subject]);
-                const rowClass = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30';
-                const borderClass = isAvgRow ? 'border-t-2 border-black font-bold mt-auto' : 'border-b border-gray-100';
+                const rowClass = idx % 2 === 0 ? 'bg-white' : 'bg-[#f9fafb]';
+                const borderClass = isAvgRow ? 'border-t-2 border-black font-bold mt-auto' : 'border-b border-[#f3f4f6]';
 
                 // 決定是否顯示統計數據 (對個人平均列：只有 showAverageInChart 開啟才顯示)
                 const showStats = !isAvgRow || showAverageInChart;
@@ -364,16 +364,16 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
                             <div className="w-12 font-bold text-lg text-black">{score}</div>
                             {isFinalExam && <div className="w-12 text-sm font-bold text-black">{!isAvgRow ? (data[`${subject}進退步`] || '—') : (data['平均進退步'] || '—')}</div>}
                             <div className="flex-1 flex justify-around text-black h-full items-center">
-                                <div className="w-12 text-base border-l border-gray-100/50 text-black font-bold h-full flex items-center justify-center">{stat?.avg?.toFixed(1) || '—'}</div>
+                                <div className="w-12 text-base border-l border-[#f3f4f6] text-black font-bold h-full flex items-center justify-center">{stat?.avg?.toFixed(1) || '—'}</div>
                                 {/* 級距數值 - 0 顯示 "0" (個人平均列也顯示) */}
                                 {showGradeDistribution && stat?.dist && (
                                     <>
-                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['100']}</div>
-                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['90-99']}</div>
-                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['80-89']}</div>
-                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['70-79']}</div>
-                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['60-69']}</div>
-                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['<60']}</div>
+                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['100']}</div>
+                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['90-99']}</div>
+                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['80-89']}</div>
+                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['70-79']}</div>
+                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['60-69']}</div>
+                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['<60']}</div>
                                     </>
                                 )}
                                 {!showGradeDistribution && <div className="flex-1"></div>}
@@ -381,7 +381,7 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
                         </div>
 
                         {/* 箱型圖區 */}
-                        <div className="w-[38%] flex relative border-l border-black/5 text-black h-full px-2">
+                        <div className="w-[38%] flex relative border-l border-[#e5e7eb] text-black h-full px-2">
                             {showChart && (
                                 <>
                                     {isAvgRow && (
@@ -402,10 +402,10 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
                         </div>
 
                         {/* 統計資料區 (Q1/中/Q3) */}
-                        <div className="w-[15%] flex items-center justify-around text-sm font-bold border-l border-gray-100 h-full">
+                        <div className="w-[15%] flex items-center justify-around text-sm font-bold border-l border-[#e5e7eb] h-full">
                             <div className="flex-1 text-center h-full flex items-center justify-center">{showStats ? stat?.q1 : '—'}</div>
-                            <div className="flex-1 text-center border-l border-gray-100/50 h-full flex items-center justify-center">{showStats ? stat?.median : '—'}</div>
-                            <div className="flex-1 text-center border-l border-gray-100/50 h-full flex items-center justify-center">{showStats ? stat?.q3 : '—'}</div>
+                            <div className="flex-1 text-center border-l border-[#f3f4f6] h-full flex items-center justify-center">{showStats ? stat?.median : '—'}</div>
+                            <div className="flex-1 text-center border-l border-[#f3f4f6] h-full flex items-center justify-center">{showStats ? stat?.q3 : '—'}</div>
                         </div>
                     </div>
                 );
@@ -593,23 +593,108 @@ export default function App() {
   const generateCanvasImage = async (elId) => {
     const element = document.getElementById(elId); 
     if (!element) return null;
-    
-    const canvas = await window.html2canvas(element, { 
-      scale: 3, 
-      useCORS: true, 
-      width: 971,   // B5 Width
-      height: 688,  // B5 Height
-      backgroundColor: '#ffffff',
-      logging: false,
-      onclone: (clonedDoc) => {
-        const clonedEl = clonedDoc.getElementById(elId);
-        if (clonedEl) {
-          clonedEl.style.transform = 'none';
-          clonedEl.style.margin = '0';
+
+    const width = 971;
+    const height = 688;
+    const scale = 2.5; // 稍微調降以防記憶體不足，B5 解析度足夠
+
+    // 引擎 1：原生 SVG ForeignObject (直接由瀏覽器內核渲染，完全避開 oklab/oklch 顏色解析問題)
+    try {
+      const clone = element.cloneNode(true);
+      clone.style.transform = 'none';
+      clone.style.margin = '0';
+      clone.style.width = `${width}px`;
+      clone.style.height = `${height}px`;
+      clone.style.boxShadow = 'none';
+
+      let cssText = '';
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          const rules = Array.from(sheet.cssRules || []);
+          cssText += rules.map(r => r.cssText).join('\n') + '\n';
+        } catch (e) {
+          // 忽略跨域樣式
         }
       }
-    });
-    return canvas.toDataURL('image/jpeg', 0.95);
+
+      // 將所有 oklab/oklch 顏色替換為十六進位/RGB，防止任何未知異常
+      cssText = cssText
+        .replace(/color-mix\(in oklab,[^)]+\)/gi, 'rgba(0,0,0,0.05)')
+        .replace(/oklab\([^)]+\)/gi, '#000000')
+        .replace(/oklch\([^)]+\)/gi, '#000000');
+
+      const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+        <foreignObject width="100%" height="100%">
+          <div xmlns="http://www.w3.org/1999/xhtml">
+            <style>
+              ${cssText}
+              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            </style>
+            ${clone.outerHTML}
+          </div>
+        </foreignObject>
+      </svg>`;
+
+      const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+
+      const dataUrl = await new Promise((resolve, reject) => {
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.95));
+          } catch (err) {
+            reject(err);
+          }
+        };
+        img.onerror = () => reject(new Error("SVG 渲染失敗"));
+        img.src = svgDataUrl;
+      });
+
+      if (dataUrl) return dataUrl;
+    } catch (svgErr) {
+      console.warn("SVG ForeignObject 模式失敗，改用 html2canvas 備用方案...", svgErr);
+    }
+
+    // 引擎 2：html2canvas（加入強效 oklab/oklch 樣式清洗器）
+    if (typeof window.html2canvas === 'function') {
+      const canvas = await window.html2canvas(element, { 
+        scale: scale, 
+        useCORS: true, 
+        width: width,
+        height: height,
+        backgroundColor: '#ffffff',
+        logging: false,
+        onclone: (clonedDoc) => {
+          // 清洗 clonedDoc 中所有 style 標籤內的 oklab, oklch 與 color-mix 函數
+          const styleTags = clonedDoc.querySelectorAll('style');
+          styleTags.forEach(tag => {
+            if (tag.innerHTML) {
+              tag.innerHTML = tag.innerHTML
+                .replace(/color-mix\(in oklab,[^)]+\)/gi, 'rgba(0,0,0,0.05)')
+                .replace(/oklab\([^)]+\)/gi, '#000000')
+                .replace(/oklch\([^)]+\)/gi, '#000000');
+            }
+          });
+
+          const clonedEl = clonedDoc.getElementById(elId);
+          if (clonedEl) {
+            clonedEl.style.transform = 'none';
+            clonedEl.style.margin = '0';
+          }
+        }
+      });
+      return canvas.toDataURL('image/jpeg', 0.95);
+    }
+
+    throw new Error("無法生成成績單影像，請重新整理網頁再試！");
   };
 
   const downloadSinglePDF = async () => {
