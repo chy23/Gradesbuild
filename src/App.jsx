@@ -5,6 +5,9 @@ import {
   BookOpen, ShieldCheck, Check, X, ExternalLink, QrCode, Image as ImageIcon,
   ZoomIn, ZoomOut, Search, Maximize2, Layers3
 } from 'lucide-react';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
+import * as XLSX from 'xlsx';
 
 /**
  * 成績單產生器 v4.43.1 (Force Deploy)
@@ -517,20 +520,9 @@ export default function App() {
   }, [showChart]);
 
   useEffect(() => {
-    const loadScript = (src) => new Promise((resolve) => {
-      const script = document.createElement('script'); script.src = src; script.onload = resolve;
-      document.body.appendChild(script);
-    });
-    Promise.all([
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'),
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
-    ]).then(() => {
-      console.log("Deployed version v4.43.1 - Force GitHub Actions Update");
-      setLibsLoaded(true);
-      const mockData = [{ '座號': '99', '姓名': '馬斯克', '國語': 50, '數學': 50, '社會': 50, '英文': 50, '自然': 50 }];
-      processData(mockData, ['國語', '數學', '社會', '英文', '自然']);
-    });
+    setLibsLoaded(true);
+    const mockData = [{ '座號': '99', '姓名': '馬斯克', '國語': 50, '數學': 50, '社會': 50, '英文': 50, '自然': 50 }];
+    processData(mockData, ['國語', '數學', '社會', '英文', '自然']);
   }, []);
 
   const processData = (data, currentSubjects, mapping = null) => {
@@ -566,8 +558,8 @@ export default function App() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (evt) => {
-        const wb = window.XLSX.read(evt.target.result, { type: 'binary' });
-        const data = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        const wb = XLSX.read(evt.target.result, { type: 'binary' });
+        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
         if (data.length > 0) {
           setRawFileData(data); 
           setDetectedRawColumns(Object.keys(data[0]).filter(k => !['姓名','座號','平均','總分'].includes(k) && !k.includes('進退步')));
@@ -594,114 +586,29 @@ export default function App() {
     const element = document.getElementById(elId); 
     if (!element) return null;
 
-    const width = 971;
-    const height = 688;
-    const scale = 2.5; // 稍微調降以防記憶體不足，B5 解析度足夠
-
-    // 引擎 1：原生 SVG ForeignObject (直接由瀏覽器內核渲染，完全避開 oklab/oklch 顏色解析問題)
     try {
-      const clone = element.cloneNode(true);
-      clone.style.transform = 'none';
-      clone.style.margin = '0';
-      clone.style.width = `${width}px`;
-      clone.style.height = `${height}px`;
-      clone.style.boxShadow = 'none';
-
-      let cssText = '';
-      for (const sheet of Array.from(document.styleSheets)) {
-        try {
-          const rules = Array.from(sheet.cssRules || []);
-          cssText += rules.map(r => r.cssText).join('\n') + '\n';
-        } catch (e) {
-          // 忽略跨域樣式
-        }
-      }
-
-      // 將所有 oklab/oklch 顏色替換為十六進位/RGB，防止任何未知異常
-      cssText = cssText
-        .replace(/color-mix\(in oklab,[^)]+\)/gi, 'rgba(0,0,0,0.05)')
-        .replace(/oklab\([^)]+\)/gi, '#000000')
-        .replace(/oklch\([^)]+\)/gi, '#000000');
-
-      const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-        <foreignObject width="100%" height="100%">
-          <div xmlns="http://www.w3.org/1999/xhtml">
-            <style>
-              ${cssText}
-              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            </style>
-            ${clone.outerHTML}
-          </div>
-        </foreignObject>
-      </svg>`;
-
-      const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-
-      const dataUrl = await new Promise((resolve, reject) => {
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            canvas.width = width * scale;
-            canvas.height = height * scale;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.95));
-          } catch (err) {
-            reject(err);
-          }
-        };
-        img.onerror = () => reject(new Error("SVG 渲染失敗"));
-        img.src = svgDataUrl;
-      });
-
-      if (dataUrl) return dataUrl;
-    } catch (svgErr) {
-      console.warn("SVG ForeignObject 模式失敗，改用 html2canvas 備用方案...", svgErr);
-    }
-
-    // 引擎 2：html2canvas（加入強效 oklab/oklch 樣式清洗器）
-    if (typeof window.html2canvas === 'function') {
-      const canvas = await window.html2canvas(element, { 
-        scale: scale, 
-        useCORS: true, 
-        width: width,
-        height: height,
+      const dataUrl = await toJpeg(element, { 
+        quality: 0.95,
         backgroundColor: '#ffffff',
-        logging: false,
-        onclone: (clonedDoc) => {
-          // 清洗 clonedDoc 中所有 style 標籤內的 oklab, oklch 與 color-mix 函數
-          const styleTags = clonedDoc.querySelectorAll('style');
-          styleTags.forEach(tag => {
-            if (tag.innerHTML) {
-              tag.innerHTML = tag.innerHTML
-                .replace(/color-mix\(in oklab,[^)]+\)/gi, 'rgba(0,0,0,0.05)')
-                .replace(/oklab\([^)]+\)/gi, '#000000')
-                .replace(/oklch\([^)]+\)/gi, '#000000');
-            }
-          });
-
-          const clonedEl = clonedDoc.getElementById(elId);
-          if (clonedEl) {
-            clonedEl.style.transform = 'none';
-            clonedEl.style.margin = '0';
-          }
+        pixelRatio: 2.5,
+        style: {
+          transform: 'none',
+          margin: '0',
+          boxShadow: 'none'
         }
       });
-      return canvas.toDataURL('image/jpeg', 0.95);
+      return dataUrl;
+    } catch (err) {
+      console.error("生成圖片失敗:", err);
+      throw new Error("無法生成成績單影像，請重新整理網頁再試！");
     }
-
-    throw new Error("無法生成成績單影像，請重新整理網頁再試！");
   };
 
   const downloadSinglePDF = async () => {
     setIsProcessing(true);
     try {
       const imgData = await generateCanvasImage('single-report-card');
-      const pdf = new window.jspdf.jsPDF('l', 'mm', 'a4');
+      const pdf = new jsPDF('l', 'mm', 'a4');
       pdf.addImage(imgData, 'JPEG', 0, 0, 257, 182); 
       const name = students[currentIndex]['姓名'];
       pdf.save(`${semesterInfo.year}學年_${semesterInfo.grade}年${semesterInfo.classNumber}班_${examType}_${name}.pdf`);
@@ -714,14 +621,17 @@ export default function App() {
     setDownloadProgress({ current: 0, total: students.length });
     
     try {
-      const pdf = new window.jspdf.jsPDF('l', 'mm', 'a4');
-      
+      let pdf;
       for (let i = 0; i < students.length; i++) {
         setDownloadProgress(prev => ({ ...prev, current: i + 1 }));
         setCurrentIndex(i);
         await new Promise(resolve => setTimeout(resolve, 800)); 
         const imgData = await generateCanvasImage('single-report-card');
-        if (i > 0) pdf.addPage('a4', 'l');
+        if (i === 0) {
+          pdf = new jsPDF('l', 'mm', 'a4');
+        } else {
+          pdf.addPage('a4', 'l');
+        }
         pdf.addImage(imgData, 'JPEG', 0, 0, 257, 182);
       }
       
