@@ -526,6 +526,7 @@ export default function App() {
       loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
       loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
     ]).then(() => {
+      console.log("Deployed version v4.43.1 - Force GitHub Actions Update");
       setLibsLoaded(true);
       const mockData = [{ '座號': '99', '姓名': '馬斯克', '國語': 50, '數學': 50, '社會': 50, '英文': 50, '自然': 50 }];
       processData(mockData, ['國語', '數學', '社會', '英文', '自然']);
