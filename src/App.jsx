@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 /**
- * 成績單產生器 v4.43 (Fix State Initialization)
+ * 成績單產生器 v4.43.1 (Force Deploy)
  * 1. 修正 semesterInfo 初始狀態，確保 grade 與 classNumber 有預設值，解決 Uncontrolled Input 警告。
  * 2. 確保檔名解析 (parseFilenameInfo) 能正確分離年級與班號。
  * 3. 確保成績單標題正確組合年級與班號。
