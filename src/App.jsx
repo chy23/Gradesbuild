@@ -7,7 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, FileUp, Download, Printer, Users, ChevronLeft, ChevronRight, 
   AlertCircle, Loader2, FileDown, ShieldCheck, QrCode, Image as ImageIcon,
-  ZoomIn, ZoomOut, Search, Maximize2, Menu, X
+  ZoomIn, ZoomOut, Search, Maximize2, Menu, X, BarChart3
 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
