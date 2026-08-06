@@ -10,7 +10,7 @@ import {
   BookOpen, ShieldCheck, Check, X, ExternalLink, QrCode, Image as ImageIcon,
   ZoomIn, ZoomOut, Search, Maximize2, Layers3
 } from 'lucide-react';
-import * as htmlToImage from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 import { Toaster, toast } from 'react-hot-toast';
@@ -399,6 +399,13 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
 
                 // 決定是否顯示統計數據 (對個人平均列：只有 showAverageInChart 開啟才顯示)
                 const showStats = !isAvgRow || showAverageInChart;
+
+                const numScore = Number(score);
+                const isFailing = !isNaN(numScore) && numScore < 60 && score !== '' && score !== '-';
+
+                const dropVal = !isAvgRow ? (data[`${subject}進退步`] || '') : (data['平均進退步'] || '');
+                const numDrop = Number(dropVal);
+                const isSignificantDrop = !isNaN(numDrop) && dropVal !== '' && numDrop <= -10;
 
                 return (
                     <div key={subject} className={`flex ${rowClass} ${borderClass} h-11 transition-all text-black text-center items-center`}>
