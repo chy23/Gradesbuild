@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@media print {
+  @page {
+    size: B5 landscape;
+    margin: 0;
+  }
+  
+  body, html {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  /* 隱藏非報表的 UI 元素 (側邊欄、按鈕、浮水印等) */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* 確保成績單可以充滿畫面並分頁 */
+  #single-report-card {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    height: 100% !important;
+    transform: none !important;
+    page-break-after: always;
+  }
+
+  /* 將所有隱藏的成績單顯示出來以便一次列印全班 */
+  #print-container {
+    display: block !important;
+  }
+}
