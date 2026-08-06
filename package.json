@@ -12,17 +12,12 @@
     "deploy": "gh-pages -d dist --dotfiles -f"
   },
   "dependencies": {
-    "html-to-image": "^1.11.13",
-    "jspdf": "^4.2.1",
     "lucide-react": "^1.26.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-hot-toast": "^2.6.0",
-    "xlsx": "^0.18.5"
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
-    "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",

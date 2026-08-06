@@ -1,8 +1,3 @@
-/**
- * 網站建立自楊家驊老師 The website was created by Teacher ChiahuaYang
- * 授權與版權所有
- */
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, FileUp, Download, Printer, Users, ChevronLeft, ChevronRight, 
@@ -10,26 +5,6 @@ import {
   BookOpen, ShieldCheck, Check, X, ExternalLink, QrCode, Image as ImageIcon,
   ZoomIn, ZoomOut, Search, Maximize2, Layers3
 } from 'lucide-react';
-import { toJpeg } from 'html-to-image';
-import { jsPDF } from 'jspdf';
-import * as XLSX from 'xlsx';
-import { Toaster, toast } from 'react-hot-toast';
-
-// Custom Hook: useLocalStorage
-function useLocalStorage(key, initialValue) {
-  const [value, setValue] = useState(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      return initialValue;
-    }
-  });
-  useEffect(() => {
-    try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
-  }, [key, value]);
-  return [value, setValue];
-}
 
 /**
  * 成績單產生器 v4.43.1 (Force Deploy)
@@ -87,20 +62,11 @@ const calculateStats = (data, subjectKey) => {
   return { avg, stdDev, q1, median, q3, minVal, maxVal, dist };
 };
 
-const parseInfoFromString = (text) => {
+const parseFilenameInfo = (filename) => {
   let info = {};
-  if (!text) return info;
-
-  // 解析學校名稱
-  const schoolMatch = text.match(/([^\s_]+?(?:國小|國中|高中|小學|中學|學校))/);
-  if (schoolMatch) info.schoolName = schoolMatch[1];
-
-  // 解析學年
-  const yearMatch = text.match(/(\d{2,4})(?:學年度|學年|年)/);
+  const yearMatch = filename.match(/(\d{2,3})(?:學年度|年)/);
   if (yearMatch) info.year = yearMatch[1];
-  
-  // 解析學期
-  const termMatch = text.match(/第?([12一二上下])學期/);
+  const termMatch = filename.match(/第?([12一二上下])學期/);
   if (termMatch) {
      let term = termMatch[1];
      if (term === '上' || term === '一') term = '1';
@@ -108,33 +74,23 @@ const parseInfoFromString = (text) => {
      info.term = term;
   }
   
-  // 進階混合格式解析 (例如 1142 -> 114學年 第2學期)
-  const compactYearTermMatch = text.match(/(?:^|[^\d])(\d{3})([12])(?!\d)/);
-  if (compactYearTermMatch) {
-     if (!info.year) info.year = compactYearTermMatch[1];
-     if (!info.term) info.term = compactYearTermMatch[2];
-  }
-  
   // 解析年級與班號 (例如：五年5班 -> grade:五, classNumber:5)
-  const classMatch = text.match(/([一二三四五六七八九十])年(\d+)班/);
+  const classMatch = filename.match(/([一二三四五六])年(\d+)班/);
   if (classMatch) {
       info.grade = classMatch[1];
       info.classNumber = classMatch[2];
   } else {
-      const numClassMatch = text.match(/(\d)年(\d+)班/);
+      // 容錯：嘗試解析數字年級 (例如 5年5班) 並轉為中文
+      const numClassMatch = filename.match(/(\d)年(\d+)班/);
       if (numClassMatch) {
-          const numMap = {'1':'一','2':'二','3':'三','4':'四','5':'五','6':'六','7':'七','8':'八','9':'九'};
+          const numMap = {'1':'一','2':'二','3':'三','4':'四','5':'五','6':'六'};
           info.grade = numMap[numClassMatch[1]] || numClassMatch[1];
           info.classNumber = numClassMatch[2];
       }
   }
 
-  // 解析考試別 (期中優先)
-  if (text.includes('期末')) info.examType = '期末考';
-  if (text.includes('期中')) info.examType = '期中考';
-  if (text.includes('平時')) info.examType = '平時成績';
-  if (text.includes('模擬')) info.examType = '模擬考';
-  
+  if (filename.includes('期中')) info.examType = '期中考';
+  if (filename.includes('期末')) info.examType = '期末考';
   return info;
 };
 
@@ -347,23 +303,23 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
                 <div className="w-12 font-bold text-black text-lg">分數</div>
                 {isFinalExam && <div className="w-12 font-bold text-black text-base">進退步</div>}
                 <div className="flex-1 flex justify-around items-center h-full text-black">
-                    <div className="w-12 text-center text-sm font-bold h-full flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-black">班平均</div>
+                    <div className="w-12 text-center text-sm font-bold h-full flex items-center justify-center border-l border-gray-100 bg-gray-50/50 text-black">班平均</div>
                     {/* 級距標題 */}
                     {showGradeDistribution ? (
                          <>
-                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">100</div>
-                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">90<br/>|<br/>99</div>
-                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">80<br/>|<br/>89</div>
-                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">70<br/>|<br/>79</div>
-                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">60<br/>|<br/>69</div>
-                           <div className="flex-1 flex items-center justify-center border-l border-[#e5e7eb] bg-[#f9fafb] text-[8px] flex-col leading-none">&lt;60</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">100</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">90<br/>|<br/>99</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">80<br/>|<br/>89</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">70<br/>|<br/>79</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">60<br/>|<br/>69</div>
+                           <div className="flex-1 flex items-center justify-center border-l border-gray-100 bg-gray-50/30 text-[8px] flex-col leading-none">&lt;60</div>
                          </>
                     ) : null}
                 </div>
             </div>
 
             {/* 箱型圖區 (38%) */}
-            <div className="w-[38%] flex flex-col justify-end relative h-[50px] shrink-0 text-black border-l border-[#e5e7eb] px-2 pt-1">
+            <div className="w-[38%] flex flex-col justify-end relative h-[50px] shrink-0 text-black border-l border-black/5 px-2 pt-1">
                 <div className="absolute top-0 left-4 font-bold text-black whitespace-nowrap">
                     <span className="text-lg">班級落點分析</span>
                     <span className="text-base font-normal ml-2">簡化版箱型圖</span>
@@ -374,10 +330,10 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
             </div>
 
             {/* 統計資料區 (15%) */}
-            <div className="w-[15%] flex items-center justify-around text-[10px] font-bold border-l border-[#e5e7eb] bg-[#f9fafb]">
+            <div className="w-[15%] flex items-center justify-around text-[10px] font-bold border-l border-gray-100 bg-gray-50/30">
                 <div className="flex-1 text-center h-full flex items-center justify-center">Q1</div>
-                <div className="flex-1 text-center border-l border-[#e5e7eb] h-full flex items-center justify-center">中位數</div>
-                <div className="flex-1 text-center border-l border-[#e5e7eb] h-full flex items-center justify-center">Q3</div>
+                <div className="flex-1 text-center border-l border-gray-100 h-full flex items-center justify-center">中位數</div>
+                <div className="flex-1 text-center border-l border-gray-100 h-full flex items-center justify-center">Q3</div>
             </div>
         </div>
 
@@ -394,37 +350,30 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
                 const score = isAvgRow ? studentAvg : (data[subject] ?? '');
                 const stat = stats[subject];
                 const chartScore = isAvgRow ? Number(studentAvg) : Number(data[subject]);
-                const rowClass = idx % 2 === 0 ? 'bg-white' : 'bg-[#f9fafb]';
-                const borderClass = isAvgRow ? 'border-t-2 border-black font-bold mt-auto' : 'border-b border-[#f3f4f6]';
+                const rowClass = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30';
+                const borderClass = isAvgRow ? 'border-t-2 border-black font-bold mt-auto' : 'border-b border-gray-100';
 
                 // 決定是否顯示統計數據 (對個人平均列：只有 showAverageInChart 開啟才顯示)
                 const showStats = !isAvgRow || showAverageInChart;
-
-                const numScore = Number(score);
-                const isFailing = !isNaN(numScore) && numScore < 60 && score !== '' && score !== '-';
-
-                const dropVal = !isAvgRow ? (data[`${subject}進退步`] || '') : (data['平均進退步'] || '');
-                const numDrop = Number(dropVal);
-                const isSignificantDrop = !isNaN(numDrop) && dropVal !== '' && numDrop <= -10;
 
                 return (
                     <div key={subject} className={`flex ${rowClass} ${borderClass} h-11 transition-all text-black text-center items-center`}>
                         {/* 基本資料區 */}
                         <div className={`w-[47%] flex items-center shrink-0 text-black h-full`}>
                             <div className="w-16 font-bold text-lg text-black flex justify-center">{label}</div>
-                            <div className={`w-12 font-bold text-lg ${isFailing ? 'text-red-600' : 'text-black'}`}>{score}</div>
-                            {isFinalExam && <div className={`w-12 text-sm font-bold ${isSignificantDrop ? 'text-red-600' : 'text-black'}`}>{!isAvgRow ? (data[`${subject}進退步`] || '—') : (data['平均進退步'] || '—')}</div>}
+                            <div className="w-12 font-bold text-lg text-black">{score}</div>
+                            {isFinalExam && <div className="w-12 text-sm font-bold text-black">{!isAvgRow ? (data[`${subject}進退步`] || '—') : (data['平均進退步'] || '—')}</div>}
                             <div className="flex-1 flex justify-around text-black h-full items-center">
-                                <div className="w-12 text-base border-l border-[#f3f4f6] text-black font-bold h-full flex items-center justify-center">{stat?.avg?.toFixed(1) || '—'}</div>
+                                <div className="w-12 text-base border-l border-gray-100/50 text-black font-bold h-full flex items-center justify-center">{stat?.avg?.toFixed(1) || '—'}</div>
                                 {/* 級距數值 - 0 顯示 "0" (個人平均列也顯示) */}
                                 {showGradeDistribution && stat?.dist && (
                                     <>
-                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['100']}</div>
-                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['90-99']}</div>
-                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['80-89']}</div>
-                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['70-79']}</div>
-                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['60-69']}</div>
-                                        <div className="flex-1 text-xs border-l border-[#f3f4f6] h-full flex items-center justify-center">{stat.dist['<60']}</div>
+                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['100']}</div>
+                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['90-99']}</div>
+                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['80-89']}</div>
+                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['70-79']}</div>
+                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['60-69']}</div>
+                                        <div className="flex-1 text-xs border-l border-gray-100/50 h-full flex items-center justify-center">{stat.dist['<60']}</div>
                                     </>
                                 )}
                                 {!showGradeDistribution && <div className="flex-1"></div>}
@@ -432,7 +381,7 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
                         </div>
 
                         {/* 箱型圖區 */}
-                        <div className="w-[38%] flex relative border-l border-[#e5e7eb] text-black h-full px-2">
+                        <div className="w-[38%] flex relative border-l border-black/5 text-black h-full px-2">
                             {showChart && (
                                 <>
                                     {isAvgRow && (
@@ -453,10 +402,10 @@ const ReportCard = ({ data, stats, subjects, semesterInfo, examType, showChart, 
                         </div>
 
                         {/* 統計資料區 (Q1/中/Q3) */}
-                        <div className="w-[15%] flex items-center justify-around text-sm font-bold border-l border-[#e5e7eb] h-full">
+                        <div className="w-[15%] flex items-center justify-around text-sm font-bold border-l border-gray-100 h-full">
                             <div className="flex-1 text-center h-full flex items-center justify-center">{showStats ? stat?.q1 : '—'}</div>
-                            <div className="flex-1 text-center border-l border-[#f3f4f6] h-full flex items-center justify-center">{showStats ? stat?.median : '—'}</div>
-                            <div className="flex-1 text-center border-l border-[#f3f4f6] h-full flex items-center justify-center">{showStats ? stat?.q3 : '—'}</div>
+                            <div className="flex-1 text-center border-l border-gray-100/50 h-full flex items-center justify-center">{showStats ? stat?.median : '—'}</div>
+                            <div className="flex-1 text-center border-l border-gray-100/50 h-full flex items-center justify-center">{showStats ? stat?.q3 : '—'}</div>
                         </div>
                     </div>
                 );
@@ -538,19 +487,17 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [libsLoaded, setLibsLoaded] = useState(false);
+  const [examType, setExamType] = useState('期末考');
+  const [uploadedQrCode, setUploadedQrCode] = useState(null); 
+  const [showChart, setShowChart] = useState(true);
+  const [showAverageInChart, setShowAverageInChart] = useState(false); 
+  const [showQrCode, setShowQrCode] = useState(true); 
+  const [showExplanation, setShowExplanation] = useState(true); 
   const [isMappingOpen, setIsMappingOpen] = useState(false);
+  const [showGradeDistribution, setShowGradeDistribution] = useState(true);
   const [rawFileData, setRawFileData] = useState([]);
   const [detectedRawColumns, setDetectedRawColumns] = useState([]);
-  
-  // LocalStorage 記憶設定
-  const [examType, setExamType] = useLocalStorage('gradesbuild_examType', '期末考');
-  const [uploadedQrCode, setUploadedQrCode] = useLocalStorage('gradesbuild_uploadedQrCode', null); 
-  const [showChart, setShowChart] = useLocalStorage('gradesbuild_showChart', true);
-  const [showAverageInChart, setShowAverageInChart] = useLocalStorage('gradesbuild_showAverageInChart', false); 
-  const [showQrCode, setShowQrCode] = useLocalStorage('gradesbuild_showQrCode', true); 
-  const [showExplanation, setShowExplanation] = useLocalStorage('gradesbuild_showExplanation', true); 
-  const [showGradeDistribution, setShowGradeDistribution] = useLocalStorage('gradesbuild_showGradeDistribution', true);
-  const [semesterInfo, setSemesterInfo] = useLocalStorage('gradesbuild_semesterInfo', { 
+  const [semesterInfo, setSemesterInfo] = useState({ 
     schoolName: '麗園國小', 
     grade: '五', 
     classNumber: '5', 
@@ -570,9 +517,19 @@ export default function App() {
   }, [showChart]);
 
   useEffect(() => {
-    setLibsLoaded(true);
-    const mockData = [{ '座號': '99', '姓名': '馬斯克', '國語': 50, '數學': 50, '社會': 50, '英文': 50, '自然': 50 }];
-    processData(mockData, ['國語', '數學', '社會', '英文', '自然']);
+    const loadScript = (src) => new Promise((resolve) => {
+      const script = document.createElement('script'); script.src = src; script.onload = resolve;
+      document.body.appendChild(script);
+    });
+    Promise.all([
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'),
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+    ]).then(() => {
+      setLibsLoaded(true);
+      const mockData = [{ '座號': '99', '姓名': '馬斯克', '國語': 50, '數學': 50, '社會': 50, '英文': 50, '自然': 50 }];
+      processData(mockData, ['國語', '數學', '社會', '英文', '自然']);
+    });
   }, []);
 
   const processData = (data, currentSubjects, mapping = null) => {
@@ -608,24 +565,15 @@ export default function App() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (evt) => {
-        try {
-          const wb = XLSX.read(evt.target.result, { type: 'binary' });
-          const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-          if (data.length > 0) {
-            setRawFileData(data); 
-            setDetectedRawColumns(Object.keys(data[0]).filter(k => !['姓名','座號','平均','總分'].includes(k) && !k.includes('進退步')));
-            // 綜合解析檔名與工作表名稱
-            const infoFromSheet = parseInfoFromString(wb.SheetNames[0]);
-            const infoFromFile = parseInfoFromString(file.name);
-            const combinedInfo = { ...infoFromSheet, ...infoFromFile };
-            setSemesterInfo(prev => ({ ...prev, ...combinedInfo }));
-            if (combinedInfo.examType) setExamType(combinedInfo.examType);
-            setIsMappingOpen(true);
-            toast.success(`成功讀取 ${data.length} 筆資料`);
-          }
-        } catch (err) {
-          toast.error('讀取 Excel 失敗');
-          console.error(err);
+        const wb = window.XLSX.read(evt.target.result, { type: 'binary' });
+        const data = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        if (data.length > 0) {
+          setRawFileData(data); 
+          setDetectedRawColumns(Object.keys(data[0]).filter(k => !['姓名','座號','平均','總分'].includes(k) && !k.includes('進退步')));
+          const info = parseFilenameInfo(file.name);
+          setSemesterInfo(prev => ({ ...prev, ...info }));
+          if (info.examType) setExamType(info.examType);
+          setIsMappingOpen(true);
         }
       };
       reader.readAsBinaryString(file);
@@ -644,36 +592,34 @@ export default function App() {
   const generateCanvasImage = async (elId) => {
     const element = document.getElementById(elId); 
     if (!element) return null;
-
-    try {
-      const dataUrl = await toJpeg(element, { 
-        quality: 0.95,
-        backgroundColor: '#ffffff',
-        pixelRatio: 2.5,
-        style: {
-          transform: 'none',
-          margin: '0',
-          boxShadow: 'none'
+    
+    const canvas = await window.html2canvas(element, { 
+      scale: 3, 
+      useCORS: true, 
+      width: 971,   // B5 Width
+      height: 688,  // B5 Height
+      backgroundColor: '#ffffff',
+      logging: false,
+      onclone: (clonedDoc) => {
+        const clonedEl = clonedDoc.getElementById(elId);
+        if (clonedEl) {
+          clonedEl.style.transform = 'none';
+          clonedEl.style.margin = '0';
         }
-      });
-      return dataUrl;
-    } catch (err) {
-      console.error("生成圖片失敗:", err);
-      throw new Error("無法生成成績單影像，請重新整理網頁再試！");
-    }
+      }
+    });
+    return canvas.toDataURL('image/jpeg', 0.95);
   };
 
   const downloadSinglePDF = async () => {
     setIsProcessing(true);
-    const toastId = toast.loading('正在產生 PDF...');
     try {
       const imgData = await generateCanvasImage('single-report-card');
-      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pdf = new window.jspdf.jsPDF('l', 'mm', 'a4');
       pdf.addImage(imgData, 'JPEG', 0, 0, 257, 182); 
       const name = students[currentIndex]['姓名'];
       pdf.save(`${semesterInfo.year}學年_${semesterInfo.grade}年${semesterInfo.classNumber}班_${examType}_${name}.pdf`);
-      toast.success('下載成功！', { id: toastId });
-    } catch (err) { toast.error('產生失敗', { id: toastId }); console.error(err); } finally { setIsProcessing(false); }
+    } catch (err) { console.error(err); } finally { setIsProcessing(false); }
   };
 
   const downloadMergedPDF = async () => {
@@ -682,25 +628,20 @@ export default function App() {
     setDownloadProgress({ current: 0, total: students.length });
     
     try {
-      let pdf;
+      const pdf = new window.jspdf.jsPDF('l', 'mm', 'a4');
+      
       for (let i = 0; i < students.length; i++) {
         setDownloadProgress(prev => ({ ...prev, current: i + 1 }));
         setCurrentIndex(i);
         await new Promise(resolve => setTimeout(resolve, 800)); 
         const imgData = await generateCanvasImage('single-report-card');
-        if (i === 0) {
-          pdf = new jsPDF('l', 'mm', 'a4');
-        } else {
-          pdf.addPage('a4', 'l');
-        }
+        if (i > 0) pdf.addPage('a4', 'l');
         pdf.addImage(imgData, 'JPEG', 0, 0, 257, 182);
       }
       
       const filename = `${semesterInfo.year}學年_${semesterInfo.grade}年${semesterInfo.classNumber}班_${examType}_全班成績單.pdf`;
       pdf.save(filename);
-      toast.success('全班成績單下載完成！');
     } catch (err) {
-      toast.error('合併下載失敗');
       console.error(err);
     } finally {
       setIsProcessing(false);
@@ -711,22 +652,7 @@ export default function App() {
   if (!libsLoaded) return <div className="h-screen flex items-center justify-center text-blue-600 font-bold bg-white text-black"><Loader2 className="animate-spin mr-3"/>載入工具中...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row font-sans text-black overflow-hidden relative">
-      <Toaster position="top-right" />
-      {/* 浮水印 (右上與右下) */}
-      <div 
-        className="fixed top-16 right-8 text-gray-600 font-bold pointer-events-none z-50 select-none tracking-widest print:hidden"
-        style={{ fontSize: '18pt', opacity: 0.25 }}
-      >
-        網站建立自楊家驊老師
-      </div>
-      <div 
-        className="fixed bottom-12 right-8 text-gray-600 font-bold pointer-events-none z-50 select-none tracking-widest print:hidden"
-        style={{ fontSize: '18pt', opacity: 0.25 }}
-      >
-        網站建立自楊家驊老師
-      </div>
-
+    <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row font-sans text-black overflow-hidden">
       <div className="fixed top-0 left-0 w-full bg-blue-700 text-white text-[10px] py-1 px-4 z-[60] flex items-center justify-center shadow-md font-bold print:hidden uppercase tracking-widest text-black">
          <ShieldCheck size={12} className="mr-2"/> Secure Local Processing - B5 Design Standard
       </div>
