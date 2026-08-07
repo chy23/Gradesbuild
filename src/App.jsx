@@ -1,3 +1,8 @@
+/**
+ * 網站建立自楊家驊老師 The website was created by Teacher ChiahuaYang
+ * 授權與版權所有
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, FileUp, Download, Printer, Users, ChevronLeft, ChevronRight, 
@@ -5,9 +10,12 @@ import {
   BookOpen, ShieldCheck, Check, X, ExternalLink, QrCode, Image as ImageIcon,
   ZoomIn, ZoomOut, Search, Maximize2, Layers3
 } from 'lucide-react';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
+import * as XLSX from 'xlsx';
 
 /**
- * 成績單產生器 v4.43.1 (Force Deploy)
+ * 成績單產生器 v4.43 (Fix State Initialization)
  * 1. 修正 semesterInfo 初始狀態，確保 grade 與 classNumber 有預設值，解決 Uncontrolled Input 警告。
  * 2. 確保檔名解析 (parseFilenameInfo) 能正確分離年級與班號。
  * 3. 確保成績單標題正確組合年級與班號。
@@ -62,11 +70,20 @@ const calculateStats = (data, subjectKey) => {
   return { avg, stdDev, q1, median, q3, minVal, maxVal, dist };
 };
 
-const parseFilenameInfo = (filename) => {
+const parseInfoFromString = (text) => {
   let info = {};
-  const yearMatch = filename.match(/(\d{2,3})(?:學年度|年)/);
+  if (!text) return info;
+
+  // 解析學校名稱 (尋找包含 國小/國中/高中/小學/中學/學校 的字串)
+  const schoolMatch = text.match(/([^\s_]+?(?:國小|國中|高中|小學|中學|學校))/);
+  if (schoolMatch) info.schoolName = schoolMatch[1];
+
+  // 解析學年
+  const yearMatch = text.match(/(\d{2,4})(?:學年度|學年|年)/);
   if (yearMatch) info.year = yearMatch[1];
-  const termMatch = filename.match(/第?([12一二上下])學期/);
+  
+  // 解析學期
+  const termMatch = text.match(/第?([12一二上下])學期/);
   if (termMatch) {
      let term = termMatch[1];
      if (term === '上' || term === '一') term = '1';
@@ -74,23 +91,35 @@ const parseFilenameInfo = (filename) => {
      info.term = term;
   }
   
+  // 進階混合格式解析 (例如 1142 -> 114學年 第2學期)
+  const compactYearTermMatch = text.match(/(?:^|[^\d])(\d{3})([12])(?!\d)/);
+  if (compactYearTermMatch) {
+     if (!info.year) info.year = compactYearTermMatch[1];
+     if (!info.term) info.term = compactYearTermMatch[2];
+  }
+  
   // 解析年級與班號 (例如：五年5班 -> grade:五, classNumber:5)
-  const classMatch = filename.match(/([一二三四五六])年(\d+)班/);
+  const classMatch = text.match(/([一二三四五六七八九十])年(\d+)班/);
   if (classMatch) {
       info.grade = classMatch[1];
       info.classNumber = classMatch[2];
   } else {
       // 容錯：嘗試解析數字年級 (例如 5年5班) 並轉為中文
-      const numClassMatch = filename.match(/(\d)年(\d+)班/);
+      const numClassMatch = text.match(/(\d)年(\d+)班/);
       if (numClassMatch) {
-          const numMap = {'1':'一','2':'二','3':'三','4':'四','5':'五','6':'六'};
+          const numMap = {'1':'一','2':'二','3':'三','4':'四','5':'五','6':'六','7':'七','8':'八','9':'九'};
           info.grade = numMap[numClassMatch[1]] || numClassMatch[1];
           info.classNumber = numClassMatch[2];
       }
   }
 
-  if (filename.includes('期中')) info.examType = '期中考';
-  if (filename.includes('期末')) info.examType = '期末考';
+  // 解析考試別
+  // 將「期末」放在「期中」前面，如果兩者都有（例如：期中期末統計表），「期中」就會覆蓋「期末」，從而優先判定為期中考
+  if (text.includes('期末')) info.examType = '期末考';
+  if (text.includes('期中')) info.examType = '期中考';
+  if (text.includes('平時')) info.examType = '平時成績';
+  if (text.includes('模擬')) info.examType = '模擬考';
+  
   return info;
 };
 
@@ -517,19 +546,9 @@ export default function App() {
   }, [showChart]);
 
   useEffect(() => {
-    const loadScript = (src) => new Promise((resolve) => {
-      const script = document.createElement('script'); script.src = src; script.onload = resolve;
-      document.body.appendChild(script);
-    });
-    Promise.all([
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'),
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
-    ]).then(() => {
-      setLibsLoaded(true);
-      const mockData = [{ '座號': '99', '姓名': '馬斯克', '國語': 50, '數學': 50, '社會': 50, '英文': 50, '自然': 50 }];
-      processData(mockData, ['國語', '數學', '社會', '英文', '自然']);
-    });
+    setLibsLoaded(true);
+    const mockData = [{ '座號': '99', '姓名': '馬斯克', '國語': 50, '數學': 50, '社會': 50, '英文': 50, '自然': 50 }];
+    processData(mockData, ['國語', '數學', '社會', '英文', '自然']);
   }, []);
 
   const processData = (data, currentSubjects, mapping = null) => {
@@ -565,14 +584,19 @@ export default function App() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (evt) => {
-        const wb = window.XLSX.read(evt.target.result, { type: 'binary' });
-        const data = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        const wb = XLSX.read(evt.target.result, { type: 'binary' });
+        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
         if (data.length > 0) {
           setRawFileData(data); 
           setDetectedRawColumns(Object.keys(data[0]).filter(k => !['姓名','座號','平均','總分'].includes(k) && !k.includes('進退步')));
-          const info = parseFilenameInfo(file.name);
-          setSemesterInfo(prev => ({ ...prev, ...info }));
-          if (info.examType) setExamType(info.examType);
+          
+          // 綜合解析檔名與工作表名稱（因為有時候標題在工作表名稱裡）
+          const infoFromSheet = parseInfoFromString(wb.SheetNames[0]);
+          const infoFromFile = parseInfoFromString(file.name);
+          const combinedInfo = { ...infoFromSheet, ...infoFromFile }; // 檔名的優先級較高，覆蓋工作表的解析結果
+          
+          setSemesterInfo(prev => ({ ...prev, ...combinedInfo }));
+          if (combinedInfo.examType) setExamType(combinedInfo.examType);
           setIsMappingOpen(true);
         }
       };
@@ -593,29 +617,27 @@ export default function App() {
     const element = document.getElementById(elId); 
     if (!element) return null;
     
-    const canvas = await window.html2canvas(element, { 
-      scale: 3, 
-      useCORS: true, 
+    return await htmlToImage.toJpeg(element, { 
+      pixelRatio: 3,
       width: 971,   // B5 Width
       height: 688,  // B5 Height
       backgroundColor: '#ffffff',
-      logging: false,
-      onclone: (clonedDoc) => {
-        const clonedEl = clonedDoc.getElementById(elId);
-        if (clonedEl) {
-          clonedEl.style.transform = 'none';
-          clonedEl.style.margin = '0';
-        }
+      style: {
+        transform: 'none',
+        margin: '0'
+      },
+      filter: (node) => {
+        // Exclude specific unwanted elements if needed
+        return true;
       }
     });
-    return canvas.toDataURL('image/jpeg', 0.95);
   };
 
   const downloadSinglePDF = async () => {
     setIsProcessing(true);
     try {
       const imgData = await generateCanvasImage('single-report-card');
-      const pdf = new window.jspdf.jsPDF('l', 'mm', 'a4');
+      const pdf = new jsPDF('l', 'mm', 'a4');
       pdf.addImage(imgData, 'JPEG', 0, 0, 257, 182); 
       const name = students[currentIndex]['姓名'];
       pdf.save(`${semesterInfo.year}學年_${semesterInfo.grade}年${semesterInfo.classNumber}班_${examType}_${name}.pdf`);
@@ -628,7 +650,7 @@ export default function App() {
     setDownloadProgress({ current: 0, total: students.length });
     
     try {
-      const pdf = new window.jspdf.jsPDF('l', 'mm', 'a4');
+      const pdf = new jsPDF('l', 'mm', 'a4');
       
       for (let i = 0; i < students.length; i++) {
         setDownloadProgress(prev => ({ ...prev, current: i + 1 }));
@@ -652,7 +674,21 @@ export default function App() {
   if (!libsLoaded) return <div className="h-screen flex items-center justify-center text-blue-600 font-bold bg-white text-black"><Loader2 className="animate-spin mr-3"/>載入工具中...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row font-sans text-black overflow-hidden">
+    <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row font-sans text-black overflow-hidden relative">
+      {/* 浮水印 (右上與右下) */}
+      <div 
+        className="fixed top-16 right-8 text-gray-600 font-bold pointer-events-none z-50 select-none tracking-widest"
+        style={{ fontSize: '18pt', opacity: 0.25 }}
+      >
+        網站建立自楊家驊老師
+      </div>
+      <div 
+        className="fixed bottom-12 right-8 text-gray-600 font-bold pointer-events-none z-50 select-none tracking-widest"
+        style={{ fontSize: '18pt', opacity: 0.25 }}
+      >
+        網站建立自楊家驊老師
+      </div>
+
       <div className="fixed top-0 left-0 w-full bg-blue-700 text-white text-[10px] py-1 px-4 z-[60] flex items-center justify-center shadow-md font-bold print:hidden uppercase tracking-widest text-black">
          <ShieldCheck size={12} className="mr-2"/> Secure Local Processing - B5 Design Standard
       </div>
